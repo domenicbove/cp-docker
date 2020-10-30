@@ -6,4 +6,4 @@
     chdir: "{% if ansible_connection == 'local' %}{{playbook_dir}}/docker/{{ansible_host}}{% else %}/opt/confluent{{inventory_hostname}}{% endif %}"
   register: remove
   changed_when: "'No stopped containers' not in remove.stdout"
-  failed_when: "'No stopped containers' not in remove.stdout and 'Going to remove zookeeper1' not in remove.stdout"
+  failed_when: "'No stopped containers' not in remove.stdout and 'Going to remove {{inventory_hostname}}' not in remove.stdout"

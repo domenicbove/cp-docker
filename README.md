@@ -13,54 +13,21 @@ Built off of the great work in the [cp-ansible](https://github.com/confluentinc/
 - [Docker Compose](https://docs.docker.com/compose/install/)
 - [Ansible](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 - TODO - Run Ansible scripts in a docker container to remove this dependency
+- [Molecule](https://molecule.readthedocs.io/en/latest/installation.html)
 
 ### How to Run Locally
 
-A base inventory file is included at the root of this repo with the hosts-local.yml
+You can make use of molecule scenarios to stand up containers locally, simply run:
 
 ```
-# cat hosts-local.yml
-
-all:
-  vars:
-    zookeeper_tls_enabled: true
-    zookeeper_client_authentication: mtls
-    zookeeper_server_authentication: mtls
-
-zookeeper:
-  hosts:
-    zookeeper1:
-    zookeeper2:
-    zookeeper3:
-
-kafka:
-  hosts:
-    kafka1:
-    kafka2:
-    kafka3:
-
-schema_registry:
-  hosts:
-    schema-registry1:
+molecule converge -s local
 ```
 
-In your inventory file, all containers must be included as hosts. It is also required that each container has a unique id at the end (ie zookeeper1). Next you can add supported configuration variables which describe the features you want enabled on your deployment. TODO write docs for all supported variables.
-
-First you need to create a certificate authority cert and key
-```
-ansible-playbook -i hosts-local.yml create_ca.yml
-```
-
-Next, to create deployment artifacts based off of your inventory file, run:
+Review the generated deployment artifacts with:
 
 ```
-ansible-playbook -i hosts-local.yml artifacts.yml
-```
-
-You can now review your deployment files in the docker directory.
-```
-% tree docker
-docker
+% tree molecule/local/docker
+molecule/local/docker
 ├── ca.crt
 ├── ca.key
 └── localhost
@@ -70,14 +37,12 @@ docker
     │   ├── kafka1.key
     │   ├── kafka1.keystore.pkcs12
     │   └── kafka1.truststore.pkcs12
+    ├── kafka2
+    │   ├── kafka2.crt
+    │   ├── kafka2.key
+    │   ├── kafka2.keystore.pkcs12
+    │   └── kafka2.truststore.pkcs12
 <lines omitted>
-```
-
-Ssl files are generated for you and properly referenced in the docker-compose.yml file.
-
-Now to deploy simply run:
-```
-ansible-playbook -i hosts-local.yml deploy.yml
 ```
 
 And thats it!
@@ -93,66 +58,66 @@ fd8a2a72ec54        confluentinc/cp-zookeeper:6.0.0         "/etc/confluent/dock
 24d7b887c41b        confluentinc/cp-zookeeper:6.0.0         "/etc/confluent/dock…"   13 seconds ago      Up 13 seconds       2888/tcp, 0.0.0.0:2181-2182->2181-2182/tcp, 3888/tcp                 zookeeper1
 ```
 
-To destroy run: (TODO this could be a playbook)
+To destroy run:
 ```
-cd docker/localhost
-docker-compose down
+molecule destroy -s local
 ```
 
-### How to Run on the on your VMs
+### How to Run on the on your AWS EC2s
 
-The exact same process will be used for generating deployment artifacts/ deploying the Confluent stack on VMs. The only difference is your inventory file. Here is one for an AWS deployment:
+A scenario is created for convenience, but you must set these environment variables, and pull a role from Ansible Galaxy
 
 ```
-# cat hosts.yml
+export AWS_ACCESS_KEY_ID=XXXXXXX
+export AWS_SECRET_ACCESS_KEY=XXxxXXX
+export AWS_SUBNET_ID=subnet-12345
 
-aws:
-  vars:
-    ansible_ssh_common_args: -o StrictHostKeyChecking=no -o IdentitiesOnly=yes
-    ansible_connection: ssh
-    ansible_ssh_user: centos
-    ansible_become: true
+ansible-galaxy install geerlingguy.docker
 
-    zookeeper_tls_enabled: true
-    zookeeper_client_authentication: mtls
-    zookeeper_server_authentication: mtls
+molecule converge -s default
+```
 
-  children:
-    zookeeper:
-    kafka:
-    schema_registry:
+This will create VMs and a security group with proper ports opened. Don't worry the VMs get destroyed :)
 
-zookeeper:
+Deployment artifacts will be saved at:
+```
+dbove@dbove-MBP15 docker-compose-demo % tree molecule/default/docker
+molecule/default/docker
+├── 34.222.43.107
+│   └── zookeeper1
+│       ├── docker-compose.yml
+│       ├── zookeeper1.crt
+│       ├── zookeeper1.key
+│       ├── zookeeper1.keystore.pkcs12
+│       └── zookeeper1.truststore.pkcs12
+<lines ommitted>
+```
+
+Review your infrastructure and connection details with:
+```
+cat ~/.cache/molecule/cp-docker/default/inventory/ansible_inventory.yml
+# Molecule managed
+
+---
+all:
   hosts:
-    zookeeper1:
-      hostname: ip-172-31-36-37.us-west-2.compute.internal
-      ansible_host: ec2-52-36-250-35.us-west-2.compute.amazonaws.com
-    zookeeper2:
-      hostname: ip-172-31-41-6.us-west-2.compute.internal
-      ansible_host: ec2-52-12-73-131.us-west-2.compute.amazonaws.com
-    zookeeper3:
-      hostname: ip-172-31-42-81.us-west-2.compute.internal
-      ansible_host: ec2-34-220-229-127.us-west-2.compute.amazonaws.com
-
-kafka:
-  hosts:
-    kafka1:
-      hostname: ip-172-31-36-37.us-west-2.compute.internal
-      ansible_host: ec2-52-36-250-35.us-west-2.compute.amazonaws.com
-    kafka2:
-      hostname: ip-172-31-41-6.us-west-2.compute.internal
-      ansible_host: ec2-52-12-73-131.us-west-2.compute.amazonaws.com
-    kafka3:
-      hostname: ip-172-31-42-81.us-west-2.compute.internal
-      ansible_host: ec2-34-220-229-127.us-west-2.compute.amazonaws.com
-
-schema_registry:
-  hosts:
-    schema_registry1:
-      hostname: ip-172-31-43-94.us-west-2.compute.internal
-      ansible_host: ec2-34-222-9-124.us-west-2.compute.amazonaws.com
+    zookeeper1: &id001
+      ansible_connection: smart
+      ansible_host: 34.222.43.107
+      ansible_port: 22
+      ansible_private_key_file: /Users/dbove/.cache/molecule/cp-docker/default/ssh_key
+      ansible_ssh_common_args: -o UserKnownHostsFile=/dev/null -o ControlMaster=auto
+        -o ControlPersist=60s -o IdentitiesOnly=yes -o StrictHostKeyChecking=no
+      ansible_user: ubuntu
+<lines omitted>
 ```
 
-For the VM based deployment, you can colocate services. In the above example zookeeper1 and kafka1 are on the same host. What is important is to make sure hostname matches the FQDN of your host itself. Right now all containers will be using the host network for VM based deployment.
+And so to connect to a host you can run:
+```
+ssh -i /Users/dbove/.cache/molecule/cp-docker/default/ssh_key -o StrictHostKeyChecking=no -o IdentitiesOnly=yes ubuntu@34.222.43.107
+```
 
-TODO document the terraform
+And finally to destroy the VMs (and save your bill) run:
+```
+molecule destroy -s default
+```

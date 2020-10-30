@@ -1,0 +1,10 @@
+- name: Cleanup
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Delete Artifacts Directory
+      file:
+        path: "{{playbook_dir}}/docker/"
+        state: absent
+      run_once: true
