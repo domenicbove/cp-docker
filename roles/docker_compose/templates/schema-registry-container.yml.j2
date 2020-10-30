@@ -1,0 +1,41 @@
+---
+image: confluentinc/cp-schema-registry:6.0.0
+# Resilient to host reboot
+restart: always
+hostname: {{ hostname }}
+container_name: {{ inventory_hostname }}
+ports:
+  - "8081:8081"
+volumes:
+{% if kafka_final_listeners[schema_registry_kafka_listener_name]['tls_enabled']|bool or schema_registry_ssl_enabled|bool %}
+  - {% if ansible_host == 'localhost' %}{{output_dir}}/{% else %}/opt/confluent/{{ inventory_hostname }}/{% endif %}{{ inventory_hostname }}.keystore.pkcs12:{{schema_registry_keystore_location}}
+  - {% if ansible_host == 'localhost' %}{{output_dir}}/{% else %}/opt/confluent/{{ inventory_hostname }}/{% endif %}{{ inventory_hostname }}.truststore.pkcs12:{{schema_registry_truststore_location}}
+{% endif %}
+environment:
+  SCHEMA_REGISTRY_SCHEMA_REGISTRY_INTER_INSTANCE_PROTOCOL: "{{schema_registry_http_protocol}}"
+  #SCHEMA_REGISTRY_LOG4J_ROOT_LOGLEVEL: INFO
+  #SCHEMA_REGISTRY_KAFKASTORE_TOPIC: _schemas
+  SCHEMA_REGISTRY_SSL_CIPHER_SUITES: "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256"
+
+  SCHEMA_REGISTRY_HOST_NAME: "{{hostname}}"
+  SCHEMA_REGISTRY_LISTENERS: "{{schema_registry_http_protocol}}://0.0.0.0:{{schema_registry_port}}"
+{% if schema_registry_ssl_enabled|bool %}
+  SCHEMA_REGISTRY_SSL_TRUSTSTORE_LOCATION: {{schema_registry_truststore_location}}
+  SCHEMA_REGISTRY_SSL_TRUSTSTORE_PASSWORD: {{schema_registry_truststore_password}}
+  SCHEMA_REGISTRY_SSL_KEYSTORE_LOCATION: {{schema_registry_keystore_location}}
+  SCHEMA_REGISTRY_SSL_KEYSTORE_PASSWORD: {{schema_registry_keystore_password}}
+  SCHEMA_REGISTRY_SSL_KEY_PASSWORD: {{schema_registry_key_password}}
+{% endif %}
+{% if schema_registry_authentication == 'mtls' %}
+  SCHEMA_REGISTRY_SSL_CLIENT_AUTH: 'true'
+{% endif %}
+
+  # Kafka Connection
+  SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: {% for host in groups['kafka'] %}{% if loop.index > 1%},{% endif %}{{ hostvars[host]['hostname'] | default(host) }}:{{kafka_final_listeners[schema_registry_kafka_listener_name]['port']}}{% endfor %}
+
+{% for key, value in 'SCHEMA_REGISTRY_KAFKASTORE_' | kafka_client_properties(
+      kafka_final_listeners[schema_registry_kafka_listener_name]['tls_enabled']|default(kafka_tls_enabled),
+      kafka_final_listeners[schema_registry_kafka_listener_name]['authentication']|default(kafka_listener_authentication),
+      schema_registry_truststore_location, schema_registry_truststore_password, schema_registry_keystore_location, schema_registry_keystore_password, schema_registry_key_password ) | dictsort %}
+  {{key}}: {{value}}
+{% endfor %}

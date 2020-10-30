@@ -1,0 +1,23 @@
+---
+- hosts: zookeeper
+  serial: 1
+  gather_facts: false
+  tasks:
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose
+
+- hosts: kafka
+  gather_facts: false
+  serial: 1
+  tasks:
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose
+
+- hosts: schema_registry
+  gather_facts: false
+  tasks:
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose

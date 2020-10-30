@@ -1,0 +1,23 @@
+all:
+  vars:
+    ansible_connection: local
+    
+    zookeeper_tls_enabled: true
+    zookeeper_client_authentication: mtls
+    zookeeper_server_authentication: mtls
+
+zookeeper:
+  hosts:
+    zookeeper1:
+    zookeeper2:
+    zookeeper3:
+
+kafka:
+  hosts:
+    kafka1:
+    kafka2:
+    kafka3:
+
+schema_registry:
+  hosts:
+    schema-registry1:

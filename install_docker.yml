@@ -1,0 +1,6 @@
+---
+# Must run: ansible-galaxy install geerlingguy.docker
+# todo improved logic around colocated containers here
+- hosts: zookeeper:schema_registry
+  roles:
+    - geerlingguy.docker

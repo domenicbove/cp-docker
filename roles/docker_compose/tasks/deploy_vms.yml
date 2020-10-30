@@ -1,0 +1,42 @@
+---
+- name: Create Deployment Directory
+  file:
+    path: "/opt/confluent"
+    state: directory
+  become: true
+
+- name: Copy Deployment Artifacts to Host
+  copy:
+    src: "{{output_dir}}"
+    dest: "/opt/confluent"
+  become: true
+
+- name: Create Zookeeper volume mount directories with Ownership by container UID
+  file:
+    path: "{{item}}"
+    state: directory
+    owner: "1000"
+    group: "1000"
+  loop:
+    - "{{zookeeper_data_volume_mount_path}}"
+    - "{{zookeeper_log_volume_mount_path}}"
+  when: "'zookeeper' in group_names"
+  become: true
+
+- name: Create Kafka volume mount directories with Ownership by container UID
+  file:
+    path: "{{kafka_data_volume_mount_path}}"
+    state: directory
+    owner: "1000"
+    group: "1000"
+  when: "'kafka' in group_names"
+  become: true
+
+- name: Deploy Containers
+  shell: |
+    /usr/local/bin/docker-compose up -d {{inventory_hostname}}
+  args:
+    chdir: "/opt/confluent/{{inventory_hostname}}"
+  register: startup
+  changed_when: "'is up-to-date' not in startup.stderr"
+  become: true

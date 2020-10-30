@@ -1,0 +1,6 @@
+---
+- include_tasks: component_artifacts_local.yml
+  when: ansible_connection == 'local'
+
+- include_tasks: component_artifacts_vms.yml
+  when: ansible_connection != 'local'

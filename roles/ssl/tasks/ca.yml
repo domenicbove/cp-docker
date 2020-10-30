@@ -1,0 +1,17 @@
+---
+- name: Create Directory for SSL Files
+  file:
+    path: "{{ca_output_dir}}"
+    state: directory
+
+- name: Create Certificate Authority
+  shell: |
+    openssl req -new -x509 \
+      -keyout {{ca_key_path}} \
+      -out {{ca_cert_path}} \
+      -days 365 \
+      -subj '/CN=ca1.test.confluent.io/OU=TEST/O=CONFLUENT/L=PaloAlto/S=Ca/C=US' \
+      -passin pass:{{ca_password}} -passout pass:{{ca_password}}
+  args:
+    # TODO might want the ability to force recreation here
+    creates: "{{ca_key_path}}"

@@ -1,0 +1,37 @@
+driver:
+  name: delegated
+  options:
+    managed: False
+    ansible_connection_options:
+      ansible_connection: local
+platforms:
+  - name: zookeeper1
+    groups:
+      - zookeeper
+  - name: zookeeper2
+    groups:
+      - zookeeper
+  - name: zookeeper3
+    groups:
+      - zookeeper
+  - name: kafka1
+    groups:
+      - kafka
+  - name: kafka2
+    groups:
+      - kafka
+  - name: kafka3
+    groups:
+      - kafka
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ../../roles/
+  inventory:
+    group_vars:
+      all:
+        zookeeper_tls_enabled: true
+        zookeeper_client_authentication: mtls
+        zookeeper_server_authentication: mtls
+
+        delete_artifacts_directory: true

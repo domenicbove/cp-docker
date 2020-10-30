@@ -1,0 +1,16 @@
+---
+- hosts: kafka
+  gather_facts: false
+  tasks:
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose
+        tasks_from: destroy_artifacts.yml
+
+- hosts: zookeeper
+  gather_facts: false
+  tasks:
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose
+        tasks_from: destroy_artifacts.yml

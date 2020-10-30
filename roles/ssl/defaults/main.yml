@@ -1,0 +1,31 @@
+---
+hostname: "{{inventory_hostname}}"
+
+output_dir: "{{playbook_dir}}/docker"
+
+ansible_host: localhost
+
+# ca_output_dir: "{{output_dir}}/{{ansible_host}}"
+ca_output_dir: "{{output_dir}}"
+
+ca_key_path: "{{ca_output_dir}}/ca.key"
+ca_cert_path: "{{ca_output_dir}}/ca.crt"
+ca_password: ca_password
+
+component_output_dir: "{{output_dir}}/{{ansible_host}}/{{inventory_hostname}}"
+
+truststore_path: "{{component_output_dir}}/{{inventory_hostname}}.truststore.pkcs12"
+truststore_storepass: truststore_password
+
+keystore_path: "{{component_output_dir}}/{{inventory_hostname}}.keystore.pkcs12"
+keystore_storepass: keystore_storepass
+
+key_path: "{{component_output_dir}}/{{inventory_hostname}}.key"
+cert_path: "{{component_output_dir}}/{{inventory_hostname}}.crt"
+
+ssl_key_algorithm: RSA
+ssl_key_size: 2048
+
+keystore_expiration_days: 365
+
+ssl_custom_certs_remote_src: false

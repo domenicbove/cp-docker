@@ -1,0 +1,88 @@
+---
+image: confluentinc/cp-server:6.0.0
+# Resilient to host reboot
+restart: always
+hostname: {{ hostname }}
+container_name: {{ inventory_hostname }}
+ports:
+{% for listener in kafka_final_listeners|dict2items %}
+  - "{{listener['value']['port']|int + port_map_adjustment|int * 100}}:{{listener['value']['port']}}"
+{% endfor %}
+volumes:
+{% if ansible_host != 'localhost' %}
+  - {{kafka_data_volume_mount_path}}:/var/lib/kafka/data
+{% endif %}
+{% if zookeeper_tls_enabled|bool %}
+  - {% if ansible_host == 'localhost' %}{{output_dir}}/{% else %}/opt/confluent/{{ inventory_hostname }}/{% endif %}{{ inventory_hostname }}.keystore.pkcs12:{{kafka_keystore_location}}
+  - {% if ansible_host == 'localhost' %}{{output_dir}}/{% else %}/opt/confluent/{{ inventory_hostname }}/{% endif %}{{ inventory_hostname }}.truststore.pkcs12:{{kafka_truststore_location}}
+{% endif %}
+environment:
+  # Zookeeper Connection
+  KAFKA_ZOOKEEPER_CONNECT: {% for host in groups['zookeeper'] -%}
+{% if loop.index > 1%},{% endif %}
+{{ hostvars[host]['hostname'] | default(host) }}:{% if network == 'docker' %}
+{% if zookeeper_tls_enabled|bool %}{{zookeeper_container_secure_client_port}}{% else %}{{zookeeper_container_client_port}}{% endif %}
+{% else %}{% if zookeeper_tls_enabled|bool %}{{ hostvars[host]['zookeeper_secure_client_port'] }}{% else %}{{ hostvars[host]['zookeeper_client_port'] }}{% endif %}{% endif %}
+{%- endfor %}
+
+{% if zookeeper_tls_enabled|bool %}
+  KAFKA_ZOOKEEPER_SSL_CLIENT_ENABLE: 'true'
+  KAFKA_ZOOKEEPER_CLIENT_CNXN_SOCKET: org.apache.zookeeper.ClientCnxnSocketNetty
+  KAFKA_ZOOKEEPER_SSL_TRUSTSTORE_LOCATION: {{kafka_truststore_location}}
+  KAFKA_ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD: {{kafka_truststore_password}}
+  KAFKA_ZOOKEEPER_SSL_TRUSTSTORE_TYPE: PKCS12
+{% if zookeeper_client_authentication == 'mtls' %}
+  KAFKA_ZOOKEEPER_SSL_KEYSTORE_LOCATION: {{kafka_keystore_location}}
+  KAFKA_ZOOKEEPER_SSL_KEYSTORE_PASSWORD: {{kafka_keystore_password}}
+  KAFKA_ZOOKEEPER_SSL_KEYSTORE_TYPE: PKCS12
+{% endif %}
+{% endif %}
+
+  # Kafka Internal Settings
+  KAFKA_BROKER_ID: {{ id }}
+  KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "{{kafka_internal_replication_factor}}"
+  KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+  KAFKA_CONFLUENT_LICENSE_TOPIC_REPLICATION_FACTOR: "{{kafka_internal_replication_factor}}"
+  KAFKA_CONFLUENT_BALANCER_TOPIC_REPLICATION_FACTOR: "{{kafka_internal_replication_factor}}"
+  KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "{{kafka_internal_replication_factor}}"
+  KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "{{kafka_internal_replication_factor}}"
+  KAFKA_JMX_PORT: 9101
+  CONFLUENT_SUPPORT_CUSTOMER_ID: 'anonymous'
+
+  # Listener Configuration
+  KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: {% for listener in kafka_final_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['key']|upper }}:{{ listener['value']['tls_enabled']|default(kafka_tls_enabled) | kafka_protocol(listener['value']['authentication']|default(kafka_listener_authentication))}}{% endfor %}
+
+  KAFKA_LISTENERS: {% for listener in kafka_final_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['key']|upper }}://:{{ listener['value']['port'] }}{% endfor %}
+
+  KAFKA_ADVERTISED_LISTENERS: {% for listener in kafka_final_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['key']|upper }}://{{ listener['value']['advertised_hostname'] | default(hostname) }}:{{ listener['value']['port'] }}{% endfor %}
+
+  KAFKA_INTER_BROKER_LISTENER_NAME: {{kafka_inter_broker_listener_name|lower}}
+
+{% for listener in kafka_final_listeners|dict2items %}
+{% if listener['value']['tls_enabled']|default(kafka_tls_enabled)|bool %}
+  KAFKA_LISTENER_NAME_{{ listener['key']|upper }}_SSL_TRUSTSTORE_LOCATION: {{kafka_truststore_location}}
+  KAFKA_LISTENER_NAME_{{ listener['key']|upper }}_SSL_TRUSTSTORE_PASSWORD: {{kafka_truststore_password}}
+  KAFKA_LISTENER_NAME_{{ listener['key']|upper }}_SSL_KEYSTORE_LOCATION: {{kafka_keystore_location}}
+  KAFKA_LISTENER_NAME_{{ listener['key']|upper }}_SSL_KEYSTORE_PASSWORD: {{kafka_keystore_password}}
+  KAFKA_LISTENER_NAME_{{ listener['key']|upper }}_SSL_KEY_PASSWORD: {{kafka_key_password}}
+{% endif %}
+{% if listener['value']['authentication']|default(kafka_listener_authentication) == 'mtls' %}
+  KAFKA_LISTENER_NAME_{{ listener['key']|upper }}_SSL_CLIENT_AUTH: required
+{% endif %}
+{% endfor %}
+
+{% if kafka_metrics_reporter_enabled|bool %}
+  # Metrics Reporter
+  CONFLUENT_METRICS_ENABLE: 'true'
+  KAFKA_METRIC_REPORTERS: io.confluent.metrics.reporter.ConfluentMetricsReporter
+  CONFLUENT_METRICS_REPORTER_TOPIC_REPLICAS: {{kafka_internal_replication_factor}}
+  CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: {% for host in groups['kafka'] %}{% if loop.index > 1%},{% endif %}{{ hostvars[host]['hostname'] | default(host) }}:{{kafka_final_listeners[kafka_inter_broker_listener_name]['port']}}{% endfor %}
+
+{% for key, value in 'CONFLUENT_METRICS_REPORTER_' | kafka_client_properties(
+    kafka_final_listeners[kafka_inter_broker_listener_name]['tls_enabled']|default(kafka_tls_enabled),
+    kafka_final_listeners[kafka_inter_broker_listener_name]['authentication']|default(kafka_listener_authentication),
+    kafka_truststore_location, kafka_truststore_password, kafka_keystore_location, kafka_keystore_password, kafka_key_password ) | dictsort %}
+  {{key}}: {{value}}
+{% endfor %}
+
+{% endif %}

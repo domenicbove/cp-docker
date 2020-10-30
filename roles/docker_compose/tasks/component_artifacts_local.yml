@@ -1,0 +1,27 @@
+---
+- name: Create Zookeeper Container Yaml
+  set_fact:
+    docker_compose: "{{ {'version': docker_compose_version, 'services': { inventory_hostname: zookeeper_container_final } } }}"
+  when: "'zookeeper' in group_names"
+
+- name: Create Kafka Container Yaml
+  set_fact:
+    docker_compose: "{{ {'version': docker_compose_version, 'services': { inventory_hostname: kafka_container_final } } }}"
+  when: "'kafka' in group_names"
+
+- name: Create Schema Registry Container Yaml
+  set_fact:
+    docker_compose: "{{ {'version': docker_compose_version, 'services': { inventory_hostname: schema_registry_container_final } } }}"
+  when: "'schema_registry' in group_names"
+
+# To combine into one compose file
+- set_fact:
+    docker_compose: "{{docker_compose | combine(hostvars[item]['docker_compose'], recursive=True) }}"
+  with_items: "{{ groups['all'] }}"
+  when: hostvars[item]['ansible_host']|default('localhost') == ansible_host|default('localhost')
+
+- name: Create docker-compose.yml File
+  copy:
+    content: "{{docker_compose | to_nice_yaml(indent=2) }}"
+    dest: "{{playbook_dir}}/docker/{{ansible_host}}/docker-compose.yml"
+  delegate_to: localhost

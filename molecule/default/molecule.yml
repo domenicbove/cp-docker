@@ -1,0 +1,35 @@
+---
+driver:
+  name: delegated
+platforms:
+  # Challenge is each item represents a host, so will have one to one mapping of containers and vms
+  - name: zookeeper1
+    image: ami-0b37e9efc396e4c38
+    ssh_user: ubuntu
+    instance_type: t2.micro
+    vpc_subnet_id: ${AWS_SUBNET_ID}
+    region: us-west-2
+    groups:
+      - zookeeper
+  - name: zookeeper2
+    image: ami-01ed306a12b7d1c96
+    ssh_user: centos
+    instance_type: t2.micro
+    vpc_subnet_id: ${AWS_SUBNET_ID}
+    region: us-west-2
+    groups:
+      - zookeeper
+provisioner:
+  name: ansible
+  env:
+    ANSIBLE_ROLES_PATH: ../../roles/
+  # config_options:
+  #   defaults:
+  #     callback_whitelist: profile_roles,profile_tasks,timer
+  inventory:
+    group_vars:
+      all:
+        deployment_mode: vm
+
+scenario:
+  name: default

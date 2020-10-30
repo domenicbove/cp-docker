@@ -1,0 +1,64 @@
+---
+- hosts: zookeeper:kafka:schema_registry
+  gather_facts: false
+  tasks:
+    - name: Create SSL Files
+      import_role:
+        name: ssl
+      vars:
+        component_name: "{{inventory_hostname}}"
+      delegate_to: localhost
+      tags: ssl
+    
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose
+        tasks_from: component_artifacts.yml
+
+# - hosts: kafka
+#   gather_facts: false
+#   tasks:
+#     - name: Create Docker Compose Files
+#       import_role:
+#         name: docker_compose
+#         tasks_from: component_artifacts.yml
+#       vars:
+#         component: kafka
+#
+# - hosts: schema_registry
+#   gather_facts: false
+#   tasks:
+#     - name: Create Docker Compose Files
+#       import_role:
+#         name: docker_compose
+#         tasks_from: component_artifacts.yml
+#       vars:
+#         component: schema_registry
+
+# - hosts: vms
+#   gather_facts: false
+#   vars:
+#     docker_compose: {}
+#   tasks:
+#     - name: Find all docker compose files
+#       shell: |
+#         ls {{playbook_dir}}/docker/{{inventory_hostname}} | grep 'docker-compose.yml'
+#       delegate_to: localhost
+#       register: ls
+#
+#     - set_fact:
+#         docker_compose: "{{ docker_compose | combine( lookup('file', '{{playbook_dir}}/docker/{{inventory_hostname}}/{{ item }}' ) | from_yaml, recursive=True ) }}"
+#       loop: "{{ ls.stdout_lines }}"
+#
+#     - name: Create docker-compose.yml File
+#       copy:
+#         content: "{{docker_compose | to_nice_yaml(indent=2) }}"
+#         dest: "{{playbook_dir}}/docker/{{inventory_hostname}}/docker-compose.yml"
+#       delegate_to: localhost
+
+    # - name: Delete old docker-compose files
+    #   file:
+    #     path: "{{playbook_dir}}/docker/{{inventory_hostname}}/{{ item }}"
+    #     state: absent
+    #   loop: "{{ ls.stdout_lines }}"
+    #   delegate_to: localhost

@@ -1,0 +1,106 @@
+### Docker Compose Version
+docker_compose_version: '3.4'
+
+### Hostname within the container. Set to VM FQDN for Prod Deployment
+hostname: "{{inventory_hostname}}"
+
+### Hostname/IP for ansible connection for orchestrating deployment.
+ansible_host: localhost
+
+### Directory to save deployment artifacts. Recommended to choose a git repo for GitOps
+output_dir: "{{playbook_dir}}/docker/{{ansible_host}}/{{inventory_hostname}}"
+
+#### Zookeeper Variables
+
+### Boolean to Configure TLS Encryption on Zookeeper Client Port
+zookeeper_tls_enabled: false
+
+### Authentication mode for Zookeeper Clients. Options: ['none', 'mtls', 'digest']
+zookeeper_client_authentication: none
+
+### Authentication mode for Zookeeper Servers. Options: ['none', 'mtls', 'digest']
+zookeeper_server_authentication: none
+
+zookeeper_keystore_password: keystore_storepass
+zookeeper_truststore_password: truststore_password
+
+### Zookeeper Client Port on Host (not in container)
+zookeeper_client_port: "{{ zookeeper_container_client_port + port_map_adjustment|int * 2 }}"
+
+### Zookeeper Secure Client Port on Host (not in container)
+zookeeper_secure_client_port: "{{ zookeeper_container_secure_client_port + port_map_adjustment|int * 2}}"
+
+# NOTE- no one cares about the port inside the container, just what its mapped to on the host
+# Since prod deployment is all port mapped, the variable zookeeper_client_port should be the port on host
+# Container ports still need to be tracked, but not customized
+# When configuring connections, need to decide if using host ports or docker network
+
+# As far as port mapping goes, for local deployments, ppl only want client ports mapped
+# For prod deployments all ports must be mapped
+
+### Zookeeper Peer Ports, will not be port mapped on local deployments
+zookeeper_peer_port: 2888
+
+### Zookeeper Peer Ports, will not be port mapped on local deployments
+zookeeper_leader_port: 3888
+
+### Zookeeper container spec overrides
+zookeeper_container_overrides: {}
+
+### Zookeeper data volume mount path on host
+zookeeper_data_volume_mount_path: "/var/lib/{{ inventory_hostname }}/data"
+
+### Zookeeper transactional log volume mount path on host
+zookeeper_log_volume_mount_path: "/var/lib/{{ inventory_hostname }}/log"
+
+
+#### Kafka Variables
+
+### Boolean to configure TLS Encryption on all of Kafka's listeners and rest endpoints
+kafka_tls_enabled: true
+
+### Authentication mode for all of Kafka's listeners
+kafka_listener_authentication: mtls
+
+### Kafka listener overwrites. Take precedence of ours. Should container subdictionary like { "client": {"name": "CLIENT", "port": 9093, "tls_enabled": true, "authentication": "none", "advertised_hostname": "kafka1.example.com" } }
+kafka_listeners_override: {}
+
+### Name of listener dict which represents the interbroker listener. Discouraged from customizing this.
+kafka_inter_broker_listener_name: broker
+
+### Replication Factor for internal topics. Defaults to the minimum of the number of brokers and 3
+kafka_internal_replication_factor: "{{ [ groups['kafka'] | default(['localhost']) | length, 3 ] | min }}"
+
+### Zookeeper container spec overrides
+kafka_container_overrides: {}
+
+# Boolean to enable Kafka Metrics Reporter
+kafka_metrics_reporter_enabled: false
+
+kafka_keystore_password: keystore_storepass
+kafka_key_password: keystore_storepass
+kafka_truststore_password: truststore_password
+
+### Kafka data volume mount path on host
+kafka_data_volume_mount_path: "/var/lib/{{ inventory_hostname }}/data"
+
+#### Schema Registry Variables
+
+### Boolean to configure TLS Encryption on Schema Registry's Rest Endpoint
+schema_registry_ssl_enabled: true
+
+### Authentication mode for Schema Registry's Rest Endpoint. Options: ['none', 'mtls', 'basic']
+schema_registry_authentication: none
+
+### Schema Registry's Port
+schema_registry_port: 8081
+
+### Name of listener dict which represents the kafka listener for Schema Registry to connect to. Discouraged from customizing this.
+schema_registry_kafka_listener_name: internal
+
+### Schema Registry container spec overrides
+schema_registry_container_overrides: {}
+
+schema_registry_keystore_password: keystore_storepass
+schema_registry_key_password: keystore_storepass
+schema_registry_truststore_password: truststore_password

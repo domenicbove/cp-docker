@@ -1,0 +1,21 @@
+---
+- name: Create Zookeeper docker-compose.yml File
+  copy:
+    content: "{{ {'version': docker_compose_version, 'services': { inventory_hostname: zookeeper_container_final } } | to_nice_yaml(indent=2) }}"
+    dest: "{{playbook_dir}}/docker/{{ansible_host}}/{{inventory_hostname}}/docker-compose.yml"
+  delegate_to: localhost
+  when: "'zookeeper' in group_names"
+
+- name: Create Kafka docker-compose.yml File
+  copy:
+    content: "{{ {'version': docker_compose_version, 'services': { inventory_hostname: kafka_container_final } } | to_nice_yaml(indent=2) }}"
+    dest: "{{playbook_dir}}/docker/{{ansible_host}}/{{inventory_hostname}}/docker-compose.yml"
+  delegate_to: localhost
+  when: "'kafka' in group_names"
+
+- name: Create Schema Registry docker-compose.yml File
+  copy:
+    content: "{{ {'version': docker_compose_version, 'services': { inventory_hostname: schema_registry_container_final } } | to_nice_yaml(indent=2) }}"
+    dest: "{{playbook_dir}}/docker/{{ansible_host}}/{{inventory_hostname}}/docker-compose.yml"
+  delegate_to: localhost
+  when: "'schema_registry' in group_names"

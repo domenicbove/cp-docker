@@ -1,0 +1,16 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Get Running Container Names
+      shell: "docker ps --format '{{ '{{' }}.Names{{ '}}' }}'"
+      register: docker_ps
+      run_once: true
+
+    - name: Assert container running
+      assert:
+        that:
+          - inventory_hostname in docker_ps.stdout_lines
+        fail_msg: "{{docker_ps.stdout}} does not equal {{inventory_hostname}}"
+        quiet: true

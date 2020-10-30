@@ -1,0 +1,44 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Create Certificate Authority
+      import_role:
+        name: ssl
+        tasks_from: ca.yml
+      run_once: true
+      delegate_to: localhost
+
+    - name: Get FQDN of Host
+      setup:
+        filter: ansible_fqdn
+        gather_subset:
+          - '!all'
+      when: ansible_connection != 'local'
+
+    - name: Set hostname variables on each host
+      set_fact:
+        hostname: "{{ansible_fqdn}}"
+      when: ansible_connection != 'local'
+
+    # TODO this role is not idempotent
+    - name: Create SSL Files
+      import_role:
+        name: ssl
+      vars:
+        component_name: "{{inventory_hostname}}"
+      delegate_to: localhost
+
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose
+        tasks_from: component_artifacts.yml
+
+- hosts: zookeeper
+  # serial: 1
+  gather_facts: false
+  tasks:
+    - name: Deploy Docker Compose Files
+      import_role:
+        name: docker_compose

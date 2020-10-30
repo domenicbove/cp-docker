@@ -1,0 +1,16 @@
+---
+- name: Verify
+  hosts: zookeeper
+  gather_facts: false
+  tasks:
+    - name: Get Running Container Names
+      shell: "docker ps --format '{{ '{{' }}.Names{{ '}}' }}'"
+      register: docker_ps
+      become: true
+
+    - name: Assert container running
+      assert:
+        that:
+          - docker_ps.stdout == inventory_hostname
+        fail_msg: "{{docker_ps.stdout}} does not equal {{inventory_hostname}}"
+        quiet: true

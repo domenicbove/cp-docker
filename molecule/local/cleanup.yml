@@ -1,0 +1,35 @@
+- hosts: all
+  gather_facts: false
+  tasks:
+    - name: Test for presence of Artifacts Directory
+      stat:
+        path: "{{playbook_dir}}/docker/"
+      register: artifacts_dir
+
+    - name: Destroy Containers
+      include_role:
+        name: docker_compose
+        tasks_from: down.yml
+      when: artifacts_dir.stat.exists
+
+    - name: Reset converged state
+      lineinfile:
+        line: "converged: false"
+        regexp: converged:*
+        path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/state.yml"
+      run_once: true
+
+    - name: Delete Artifacts Directory
+      file:
+        path: "{{playbook_dir}}/docker/"
+        state: absent
+      when: delete_artifacts_directory|bool
+      run_once: true
+
+    - name: Reset prepared state
+      lineinfile:
+        line: "prepared: false"
+        regexp: prepared:*
+        path: "{{ lookup('env', 'MOLECULE_EPHEMERAL_DIRECTORY') }}/state.yml"
+      when: delete_artifacts_directory|bool
+      run_once: true

@@ -1,0 +1,60 @@
+---
+image: confluentinc/cp-zookeeper:6.0.0
+# Resilient to host reboot
+restart: always
+hostname: {{ hostname }}
+container_name: {{ inventory_hostname }}
+ports:
+# TODO rethink this logic
+  - "{{zookeeper_client_port}}:{{zookeeper_container_client_port}}"
+{% if zookeeper_tls_enabled|bool %}
+  - "{{zookeeper_secure_client_port}}:{{zookeeper_container_secure_client_port}}"
+{% endif %}
+{% if ansible_host != 'localhost' %}
+  - "{{zookeeper_peer_port}}:{{zookeeper_peer_port}}"
+  - "{{zookeeper_leader_port}}:{{zookeeper_leader_port}}"
+{% endif %}
+volumes:
+{% if ansible_host != 'localhost' %}
+  - {{zookeeper_data_volume_mount_path}}:/var/lib/zookeeper/data
+  - {{zookeeper_log_volume_mount_path}}:/var/lib/zookeeper/log
+{% endif %}
+{% if zookeeper_tls_enabled|bool %}
+  - {% if ansible_host == 'localhost' %}{{output_dir}}/{% else %}/opt/confluent/{{ inventory_hostname }}/{% endif %}{{ inventory_hostname }}.keystore.pkcs12:{{zookeeper_keystore_location}}
+  - {% if ansible_host == 'localhost' %}{{output_dir}}/{% else %}/opt/confluent/{{ inventory_hostname }}/{% endif %}{{ inventory_hostname }}.truststore.pkcs12:{{zookeeper_truststore_location}}
+{% endif %}
+environment:
+  ZOOKEEPER_TICK_TIME: 2000
+  ZOOKEEPER_SERVER_ID: {{ id }}
+  ZOOKEEPER_SERVERS: {% for host in groups['zookeeper'] %}{% if loop.index > 1%};{% endif %}{{ hostvars[host]['hostname'] | default(host) }}:{{zookeeper_peer_port}}:{{zookeeper_leader_port}}{% endfor %}
+
+  # Will always have insecure port, can decide about port mapping
+  ZOOKEEPER_CLIENT_PORT: {{zookeeper_container_client_port}}
+{% if zookeeper_tls_enabled|bool %}
+  ZOOKEEPER_SECURE_CLIENT_PORT: {{zookeeper_container_secure_client_port}}
+  ZOOKEEPER_SERVER_CNXN_FACTORY: org.apache.zookeeper.server.NettyServerCnxnFactory
+  ZOOKEEPER_SSL_KEYSTORE_LOCATION: {{zookeeper_keystore_location}}
+  ZOOKEEPER_SSL_KEYSTORE_PASSWORD: {{zookeeper_keystore_password}}
+  ZOOKEEPER_SSL_KEYSTORE_TYPE: PKCS12
+  ZOOKEEPER_SSL_TRUSTSTORE_LOCATION: {{zookeeper_truststore_location}}
+  ZOOKEEPER_SSL_TRUSTSTORE_PASSWORD: {{zookeeper_truststore_password}}
+  ZOOKEEPER_SSL_TRUSTSTORE_TYPE: PKCS12
+  ZOOKEEPER_AUTH_PROVIDER_X509: org.apache.zookeeper.server.auth.X509AuthenticationProvider
+{% if ansible_host == 'localhost' %}
+  # Hostnames in containers don't behave well
+  # TODO improved logic on this env var
+  KAFKA_OPTS: -Dzookeeper.ssl.hostnameVerification=false -Dzookeeper.ssl.quorum.hostnameVerification=false
+{% endif %}
+{% if zookeeper_client_authentication == 'mtls' %}
+  ZOOKEEPER_SSL_CLIENT_AUTH: need
+{% endif %}
+{% if zookeeper_server_authentication == 'mtls' %}
+  ZOOKEEPER_SSL_QUORUM: 'true'
+  ZOOKEEPER_SSL_QUORUM_KEYSTORE_LOCATION: {{zookeeper_keystore_location}}
+  ZOOKEEPER_SSL_QUORUM_KEYSTORE_PASSWORD: {{zookeeper_keystore_password}}
+  ZOOKEEPER_SSL_QUORUM_KEYSTORE_TYPE: PKCS12
+  ZOOKEEPER_SSL_QUORUM_TRUSTSTORE_LOCATION: {{zookeeper_truststore_location}}
+  ZOOKEEPER_SSL_QUORUM_TRUSTSTORE_PASSWORD: {{zookeeper_truststore_password}}
+  ZOOKEEPER_SSL_QUORUM_TRUSTSTORE_TYPE: PKCS12
+{% endif %}
+{% endif %}

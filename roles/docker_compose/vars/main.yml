@@ -1,0 +1,69 @@
+# Get int value at end of container name, ie kafka1 -> 1
+id: "{{ inventory_hostname | regex_replace('^[a-z.]*(.*)$', '\\1') }}"
+
+# On localhost deploys will need to increment the ports to avoid collisions
+port_map_adjustment: "{{ id|int - 1 if ansible_host == 'localhost' else 0 }}"
+
+# All component connections will be done over docker network in a local deployment
+network: "{{ 'docker' if ansible_ssh_host == 'localhost' else 'host' }}"
+
+# Path within container for zookeeper keystore
+zookeeper_keystore_location: "/etc/kafka/secrets/{{ inventory_hostname }}.keystore.pkcs12"
+
+# Path within container for zookeeper truststore
+zookeeper_truststore_location: "/etc/kafka/secrets/{{ inventory_hostname }}.truststore.pkcs12"
+
+# Rendered zookeeper container template in yaml
+zookeeper_container: "{{ lookup('template', 'zookeeper-container.yml.j2') | from_yaml }}"
+
+# Final zookeeper container yaml with overrides
+zookeeper_container_final: "{{zookeeper_container | combine(zookeeper_container_overrides, recursive=True)}}"
+
+# Zookeeper Nonsecure Client Port within Container
+zookeeper_container_client_port: 2181
+
+### Zookeeper Secure Client Port within Container
+zookeeper_container_secure_client_port: 2182
+
+
+
+# Kafka listeners
+kafka_listeners:
+  broker:
+    port: 9091
+    tls_enabled: "{{ kafka_tls_enabled }}"
+    authentication: "{{ kafka_listener_authentication }}"
+  internal:
+    port: 9092
+    tls_enabled: false
+    authentication: none
+
+# Final Kafka listeners with overrides merged
+kafka_final_listeners: "{{ kafka_listeners | combine(kafka_listeners_override, recursive=True) }}"
+
+# Rendered kafka container template in yaml
+kafka_container: "{{ lookup('template', 'kafka-container.yml.j2') | from_yaml }}"
+
+# Final kafka container yaml with overrides
+kafka_container_final: "{{kafka_container | combine(kafka_container_overrides, recursive=True)}}"
+
+# Path within container for zookeeper keystore
+kafka_keystore_location: "/etc/kafka/secrets/{{ inventory_hostname }}.keystore.pkcs12"
+
+# Path within container for zookeeper truststore
+kafka_truststore_location: "/etc/kafka/secrets/{{ inventory_hostname }}.truststore.pkcs12"
+
+# Http(s) on the Schema Registry API
+schema_registry_http_protocol: "{{ 'https' if schema_registry_ssl_enabled|bool else 'http' }}"
+
+# Rendered schema registry container template in yaml
+schema_registry_container: "{{ lookup('template', 'schema-registry-container.yml.j2') | from_yaml }}"
+
+# Final schema registry container yaml with overrides
+schema_registry_container_final: "{{schema_registry_container | combine(schema_registry_container_overrides, recursive=True)}}"
+
+# Path within container for schema registry keystore
+schema_registry_keystore_location: "/etc/kafka/secrets/{{ inventory_hostname }}.keystore.pkcs12"
+
+# Path within container for schema registry truststore
+schema_registry_truststore_location: "/etc/kafka/secrets/{{ inventory_hostname }}.truststore.pkcs12"
