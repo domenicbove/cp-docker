@@ -12,9 +12,18 @@
       -import -file {{ca_cert_path}} \
       -storepass {{truststore_storepass}} \
       -keypass {{truststore_storepass}}
+  args:
+    # Assuming the truststore is correct if exists
+    creates: "{{truststore_path}}"
 
-- name: Create Keystore
+- name: Create openssl Config for SAN
+  template:
+    src: openssl-san.cnf.j2
+    dest: "{{component_output_dir}}/openssl-san.cnf"
+
+- name: Create Keystore, Sign Certificate and Import Signed Cert and CA
   shell: |
+    # Create Keystore
     keytool -genkey -noprompt \
       -storetype pkcs12 \
       -keyalg {{ssl_key_algorithm}} -keysize {{ssl_key_size}} \
@@ -25,16 +34,7 @@
       -storepass {{keystore_storepass}} \
       -keypass {{keystore_storepass}}
 
-- name: Export Key from Keystore
-  shell: |
-    openssl pkcs12 \
-        -in {{keystore_path}} \
-        -passin pass:{{keystore_storepass}} \
-        -nodes -nocerts \
-        -out {{key_path}}
-
-- name: Create Certificate Signing Request
-  shell: |
+    # Create Certificate Signing Request
     keytool -keystore {{keystore_path}} \
       -storetype pkcs12 \
       -alias {{hostname}} \
@@ -43,14 +43,8 @@
       -storepass {{keystore_storepass}} \
       -keypass {{keystore_storepass}}
 
-- name: Create openssl Config for SAN
-  template:
-    src: openssl-san.cnf.j2
-    dest: "{{component_output_dir}}/openssl-san.cnf"
-
-- name: Sign CSR with the Certificate Authority
-  shell: |
-    /usr/bin/openssl x509 -req -CA {{ca_cert_path}} \
+    # Sign CSR with the Certificate Authority
+    openssl x509 -req -CA {{ca_cert_path}} \
       -CAkey {{ca_key_path}} \
       -in {{component_output_dir}}/client.csr \
       -out {{cert_path}} \
@@ -59,24 +53,36 @@
       -extfile {{component_output_dir}}/openssl-san.cnf \
       -extensions v3_req
 
-- name: Import the CA cert into the Keystore
-  shell: |
-    /usr/bin/keytool -noprompt -keystore {{keystore_path}} \
+    # Import the CA cert into the Keystore
+    keytool -noprompt -keystore {{keystore_path}} \
       -storetype pkcs12 \
       -alias CARoot \
       -import -file {{ca_cert_path}} \
       -storepass {{keystore_storepass}} \
       -keypass {{keystore_storepass}}
 
-- name: Import the Signed Host Cert into the Keystore
-  shell: |
-    /usr/bin/keytool -noprompt -keystore {{keystore_path}} \
+    # Import the Signed Host Cert into the Keystore
+    keytool -noprompt -keystore {{keystore_path}} \
       -storetype pkcs12 \
       -alias {{hostname}} \
       -import -file {{cert_path}} \
       -ext "SAN=dns:{{hostname}}" \
       -storepass {{keystore_storepass}} \
       -keypass {{keystore_storepass}}
+  args:
+    # Assuming the keystore is correct if exists
+    creates: "{{keystore_path}}"
+
+- name: Export Key from Keystore
+  shell: |
+    openssl pkcs12 \
+        -in {{keystore_path}} \
+        -passin pass:{{keystore_storepass}} \
+        -nodes -nocerts \
+        -out {{key_path}}
+  args:
+    # Assuming the truststore is correct if exists
+    creates: "{{key_path}}"
 
 - name: Delete unnecessary SSL Files
   file:

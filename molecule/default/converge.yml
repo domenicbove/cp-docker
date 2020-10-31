@@ -36,7 +36,6 @@
         tasks_from: component_artifacts.yml
 
 - hosts: zookeeper
-  # serial: 1
   gather_facts: false
   tasks:
     - name: Deploy Docker Compose Files

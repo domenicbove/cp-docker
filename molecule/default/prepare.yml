@@ -1,5 +1,15 @@
 ---
 - name: Prepare
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Install Docker Role
+      shell: ansible-galaxy install geerlingguy.docker
+      register: output
+      changed_when: "'is already installed' not in output.stderr"
+
+- name: Prepare
   hosts: all
   roles:
     - { role: geerlingguy.docker, become: yes }
