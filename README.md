@@ -72,8 +72,6 @@ export AWS_ACCESS_KEY_ID=XXXXXXX
 export AWS_SECRET_ACCESS_KEY=XXxxXXX
 export AWS_SUBNET_ID=subnet-12345
 
-ansible-galaxy install geerlingguy.docker
-
 molecule converge -s default
 ```
 

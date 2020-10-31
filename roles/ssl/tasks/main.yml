@@ -76,12 +76,12 @@
 - name: Export Key from Keystore
   shell: |
     openssl pkcs12 \
-        -in {{keystore_path}} \
-        -passin pass:{{keystore_storepass}} \
-        -nodes -nocerts \
-        -out {{key_path}}
+      -in {{keystore_path}} \
+      -passin pass:{{keystore_storepass}} \
+      -nodes -nocerts \
+      -out {{key_path}}
   args:
-    # Assuming the truststore is correct if exists
+    # Assuming the key is correct if exists
     creates: "{{key_path}}"
 
 - name: Delete unnecessary SSL Files
