@@ -9,6 +9,4 @@
     chdir: "{{playbook_dir}}/docker/{{ansible_host}}"
   register: startup
   changed_when: "'is up-to-date' not in startup.stderr"
-  # is this delegate_to necessary
-  delegate_to: localhost
   when: ansible_connection == 'local'

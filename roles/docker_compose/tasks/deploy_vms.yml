@@ -39,4 +39,7 @@
     chdir: "/opt/confluent/{{inventory_hostname}}"
   register: startup
   changed_when: "'is up-to-date' not in startup.stderr"
+  # If ansible_user added to docker group shouldnt need this
   become: true
+  # environment:
+  #   DOCKER_HOST: 127.0.0.1:2375
