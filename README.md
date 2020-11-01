@@ -63,9 +63,9 @@ To destroy run:
 molecule destroy -s local
 ```
 
-### How to Run on the on your AWS EC2s
+### How to Run on the on AWS EC2s
 
-A scenario is created for convenience, but you must set these environment variables, and pull a role from Ansible Galaxy
+A scenario is created for convenience, but you must set these AWS environment variables:
 
 ```
 export AWS_ACCESS_KEY_ID=XXXXXXX
@@ -79,7 +79,7 @@ This will create VMs and a security group with proper ports opened. Don't worry 
 
 Deployment artifacts will be saved at:
 ```
-dbove@dbove-MBP15 docker-compose-demo % tree molecule/default/docker
+% tree molecule/default/docker
 molecule/default/docker
 ├── 34.222.43.107
 │   └── zookeeper1
@@ -93,7 +93,7 @@ molecule/default/docker
 
 Review your infrastructure and connection details with:
 ```
-cat ~/.cache/molecule/cp-docker/default/inventory/ansible_inventory.yml
+% cat ~/.cache/molecule/cp-docker/default/inventory/ansible_inventory.yml
 # Molecule managed
 
 ---
@@ -119,3 +119,16 @@ And finally to destroy the VMs (and save your bill) run:
 ```
 molecule destroy -s default
 ```
+
+### Sample Inventories
+
+There are sample inventory files included at:
+```
+% tree sample_inventories
+sample_inventories
+├── hosts-local.yml
+└── hosts.yml
+```
+
+### Supported Variables
+Find all supported configuration variables in [VARIABLES.md](https://github.com/domenicbove/cp-docker/blob/master/VARIABLES.md)
