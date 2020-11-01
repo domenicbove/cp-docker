@@ -9,9 +9,6 @@
       register: output
       changed_when: "'is already installed' not in output.stderr"
 
-    # - name: Install Docker Role
-    #   shell: ansible-galaxy collection install community.general
-
 - name: Prepare
   hosts: all
   roles:
@@ -19,4 +16,20 @@
       vars:
         docker_users:
           - "{{ansible_user}}"
-      become: yes
+      become: true
+
+- name: Prepare
+  hosts: all
+  tasks:
+    - name: Reboot of host so ansible_user will work with Docker
+      reboot:
+      become: true
+
+    - name: Wait for SSH
+      wait_for:
+        port: 22
+        host: "{{ ansible_host }}"
+        search_regex: SSH
+        delay: 10
+        timeout: 320
+      connection: local

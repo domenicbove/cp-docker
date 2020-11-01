@@ -22,7 +22,6 @@
         hostname: "{{ansible_fqdn}}"
       when: ansible_connection != 'local'
 
-    # TODO this role is not idempotent
     - name: Create SSL Files
       import_role:
         name: ssl
