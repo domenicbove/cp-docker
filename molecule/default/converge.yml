@@ -15,12 +15,10 @@
         filter: ansible_fqdn
         gather_subset:
           - '!all'
-      when: ansible_connection != 'local'
 
     - name: Set hostname variables on each host
       set_fact:
         hostname: "{{ansible_fqdn}}"
-      when: ansible_connection != 'local'
 
     - name: Create SSL Files
       import_role:

@@ -16,10 +16,17 @@
     # Assuming the truststore is correct if exists
     creates: "{{truststore_path}}"
 
+- name: Test for presence of keystore
+  stat:
+    path: "{{ keystore_path }}"
+  register: keystore_local
+
 - name: Create openssl Config for SAN
   template:
     src: openssl-san.cnf.j2
     dest: "{{component_output_dir}}/openssl-san.cnf"
+  # If keystore exists no need to sign cert with this file
+  when: not keystore_local.stat.exists
 
 - name: Create Keystore, Sign Certificate and Import Signed Cert and CA
   shell: |

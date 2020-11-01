@@ -1,4 +1,25 @@
 ---
+- name: Create Artifacts
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Create Certificate Authority
+      import_role:
+        name: ssl
+        tasks_from: ca.yml
+      run_once: true
+
+    - name: Create SSL Files
+      import_role:
+        name: ssl
+      vars:
+        component_name: "{{inventory_hostname}}"
+
+    - name: Create Docker Compose Files
+      import_role:
+        name: docker_compose
+        tasks_from: component_artifacts.yml
+
 - hosts: zookeeper
   serial: 1
   gather_facts: false

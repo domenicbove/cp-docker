@@ -20,6 +20,7 @@
 
 - name: Prepare
   hosts: all
+  gather_facts: false
   tasks:
     - name: Reboot of host so ansible_user will work with Docker
       reboot:
