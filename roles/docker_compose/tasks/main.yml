@@ -4,7 +4,7 @@
 
 - name: Deploy Containers Local
   shell: |
-    /usr/local/bin/docker-compose up -d {{inventory_hostname}}
+    docker-compose up -d {{inventory_hostname}}
   args:
     chdir: "{{playbook_dir}}/docker/{{ansible_host}}"
   register: startup

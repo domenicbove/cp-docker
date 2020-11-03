@@ -34,7 +34,7 @@
 
 - name: Deploy Containers
   shell: |
-    /usr/local/bin/docker-compose up -d {{inventory_hostname}}
+    docker-compose up -d {{inventory_hostname}}
   args:
     chdir: "/opt/confluent/{{inventory_hostname}}"
   register: startup

@@ -1,7 +1,7 @@
 ---
 - name: Destroy Containers
   shell: |
-    /usr/local/bin/docker-compose rm --stop --force {{inventory_hostname}}
+    docker-compose rm --stop --force {{inventory_hostname}}
   args:
     chdir: "{% if ansible_connection == 'local' %}{{playbook_dir}}/docker/{{ansible_host}}{% else %}/opt/confluent{{inventory_hostname}}{% endif %}"
   register: remove
