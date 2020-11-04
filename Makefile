@@ -4,8 +4,8 @@ define molecule_docker_exec
 docker run \
 -it --rm \
 -v "/var/run/docker.sock:/var/run/docker.sock" \
--v "$(current_dir):/hacking" \
--w "/hacking" \
+-v "$(current_dir):$(current_dir)" \
+-w "$(current_dir)" \
 --entrypoint="" \
 localhost/molecule:latest
 endef
