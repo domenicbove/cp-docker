@@ -29,3 +29,6 @@ ssl_key_size: 2048
 keystore_expiration_days: 365
 
 ssl_custom_certs_remote_src: false
+
+uid: 1000
+gid: 1000

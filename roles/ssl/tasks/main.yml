@@ -3,6 +3,8 @@
   file:
     path: "{{component_output_dir}}"
     state: directory
+    owner: "{{ uid }}"
+    group: "{{ gid }}"
 
 - name: Create Truststore and Import the CA Cert
   shell: |
@@ -11,7 +13,8 @@
       -alias CARoot \
       -import -file {{ca_cert_path}} \
       -storepass {{truststore_storepass}} \
-      -keypass {{truststore_storepass}}
+      -keypass {{truststore_storepass}} && \
+    chown -R {{uid}}:{{gid}} {{truststore_path}}
   args:
     # Assuming the truststore is correct if exists
     creates: "{{truststore_path}}"
@@ -58,7 +61,8 @@
       -days {{keystore_expiration_days}} -CAcreateserial \
       -passin pass:{{ca_password}} \
       -extfile {{component_output_dir}}/openssl-san.cnf \
-      -extensions v3_req
+      -extensions v3_req && \
+    chown -R {{uid}}:{{gid}} {{cert_path}}
 
     # Import the CA cert into the Keystore
     keytool -noprompt -keystore {{keystore_path}} \
@@ -76,6 +80,8 @@
       -ext "SAN=dns:{{hostname}}" \
       -storepass {{keystore_storepass}} \
       -keypass {{keystore_storepass}}
+
+    chown -R {{uid}}:{{gid}} {{keystore_path}}
   args:
     # Assuming the keystore is correct if exists
     creates: "{{keystore_path}}"
@@ -86,7 +92,8 @@
       -in {{keystore_path}} \
       -passin pass:{{keystore_storepass}} \
       -nodes -nocerts \
-      -out {{key_path}}
+      -out {{key_path}} && \
+    chown -R {{uid}}:{{gid}} {{key_path}}
   args:
     # Assuming the key is correct if exists
     creates: "{{key_path}}"
