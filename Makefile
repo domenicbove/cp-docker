@@ -6,8 +6,6 @@ docker run \
 -v "/var/run/docker.sock:/var/run/docker.sock" \
 -v "$(current_dir):$(current_dir)" \
 -w "$(current_dir)" \
---entrypoint="" \
--e "HOME=/tmp/" \
 localhost/molecule:latest
 endef
 
