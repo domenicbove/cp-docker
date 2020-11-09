@@ -3,8 +3,6 @@
   file:
     path: "{{ca_output_dir}}"
     state: directory
-    owner: "{{ uid }}"
-    group: "{{ gid }}"
 
 - name: Create Certificate Authority
   shell: |
@@ -13,8 +11,14 @@
       -out {{ca_cert_path}} \
       -days 365 \
       -subj '/CN=ca1.test.confluent.io/OU=TEST/O=CONFLUENT/L=PaloAlto/S=Ca/C=US' \
-      -passin pass:{{ca_password}} -passout pass:{{ca_password}} && \
-    chown -R {{uid}}:{{gid}} {{ca_output_dir}}
+      -passin pass:{{ca_password}} -passout pass:{{ca_password}}
   args:
     # TODO might want the ability to force recreation here
     creates: "{{ca_key_path}}"
+
+- name: Ensure correct ownership for SSL Files
+  file:
+    path: "{{ca_output_dir}}"
+    recurse: true
+    owner: "{{ uid }}"
+    group: "{{ gid }}"
