@@ -1,6 +1,4 @@
 current_dir = $(shell pwd)
-# uid = $(shell id -u)
-# gid = $(shell id -g)
 
 define molecule_docker_exec 
 docker run \
