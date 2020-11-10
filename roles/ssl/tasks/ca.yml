@@ -15,3 +15,10 @@
   args:
     # TODO might want the ability to force recreation here
     creates: "{{ca_key_path}}"
+
+- name: Ensure correct ownership for SSL Files
+  file:
+    path: "{{ca_output_dir}}"
+    recurse: true
+    owner: "{{ uid }}"
+    group: "{{ gid }}"

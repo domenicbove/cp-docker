@@ -99,3 +99,10 @@
     - "{{component_output_dir}}/client.csr"
     - "{{component_output_dir}}/openssl-san.cnf"
     - "{{ca_output_dir}}/ca.srl"
+
+- name: Ensure correct ownership for SSL Files
+  file:
+    path: "{{component_output_dir}}"
+    recurse: true
+    owner: "{{ uid }}"
+    group: "{{ gid }}"
